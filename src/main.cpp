@@ -12,7 +12,8 @@ int main(){
 	camera.fovy = 45.0f;
 	camera.projection = CAMERA_PERSPECTIVE;
 
-	Vector3 cube_pos = {0.0f, 0.0f, 0.0f};
+	Model mav = LoadModel("./resources/MAV.obj");
+	Vector3 mav_pos = {0.0f, 0.0f, 0.0f};
 
 	SetTargetFPS(60.0);
 
@@ -21,8 +22,7 @@ int main(){
 		ClearBackground(RAYWHITE);
 		BeginMode3D(camera);
 
-		DrawCube(cube_pos, 2.0, 2.0, 2.0, RED);
-		DrawCubeWires(cube_pos, 2.0, 2.0, 2.0, RED);
+		DrawModel(mav, mav_pos, 1.0f, WHITE);
 		DrawGrid(10, 1.0f);
 
 		EndMode3D();
