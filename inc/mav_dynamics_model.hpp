@@ -13,6 +13,8 @@ private:
 	float get_propeller_speed(float volts_in, float airspeed);
 	float get_thrust(float propeller_speed, float airspeed);
 	float get_torque(float propeller_speed, float airspeed);
+	float get_drag_coefficent(float angle_of_attack);
+	float get_lift_coefficent(float angle_of_attack);
 	float get_airspeed(float u_r, float v_r, float w_r);
 	float get_angle_of_attack(float u_r, float w_r);
 	float get_sideslip(float u_r, float v_r, float w_r);
@@ -26,6 +28,9 @@ private:
 	float m_Jy;
 	float m_Jz;
 	float m_Jxz;
+	float m_oswald_efficency;
+	float m_mean_chord;
+	float m_planform_area;
 	float m_gamma;
 	float m_gamma1;
 	float m_gamma2;
@@ -35,6 +40,22 @@ private:
 	float m_gamma6;
 	float m_gamma7;
 	float m_gamma8;
+
+	float m_elevator_deflection;
+	float m_r_aileron_deflection;
+	float m_l_aileron_deflection;
+	float m_rudder_deflection;
+
+	float m_wing_aspect_ratio;
+	float m_C_L0;
+	float m_C_La;
+	float m_C_Lq;
+	float m_C_L_delta_e;
+	float m_C_Dp;
+	float m_C_Dq;
+	float m_C_D_delta_e;
+	float m_alpha0;
+	float m_M;
 
 	float m_throttle = 0;
 	float m_max_volts_motor;

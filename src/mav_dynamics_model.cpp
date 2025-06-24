@@ -76,11 +76,24 @@ void MAVDynamicsModel::apply_force(float dt) {
   float w_r = m_w - w_wind;
 
   float airspeed = get_airspeed(u_r, v_r, w_r);
+  auto [thrust, torque] = get_thrust_and_torque(airspeed, m_throttle);
   float angle_of_attack = get_angle_of_attack(u_r, w_r);
   float side_slip = get_sideslip(u_r, v_r, w_r);
+  float aero_coef = 0.5 * m_air_density * std::pow(airspeed, 2) * m_planform_area;
+  float drag_coef = get_drag_coefficent(angle_of_attack);
+  float lift_coef = get_lift_coefficent(angle_of_attack);
+
+  float C_X = -drag_coef * cosf(angle_of_attack) + lift_coef * sinf(angle_of_attack);
+  float C_Xq = -m_C_Dq * cosf(angle_of_attack) + m_C_Lq * sinf(angle_of_attack);
+  float C_X_delta_e = -m_C_D_delta_e * cosf(angle_of_attack) + m_C_L_delta_e* sinf(angle_of_attack);
+  float C_Z = -drag_coef * sinf(angle_of_attack) - lift_coef * cosf(angle_of_attack);
+  float C_Zq = -m_C_Dq * sinf(angle_of_attack) - m_C_Lq * cosf(angle_of_attack);
+  float C_Z_delta_e = -m_C_D_delta_e * sinf(angle_of_attack) - m_C_L_delta_e* cosf(angle_of_attack);
+  
 	float fx = (-m_mass * m_gravity * 2 * (m_ex * m_ez - m_ey * m_e0)) +
-		(get_thrust(m_throttle, airspeed)) +
-		(
+		thrust +
+		aero_coef * (C_X + C_Xq * (m_mean_chord / (2 * airspeed)) * m_q) +
+                aero_coef * (C_Z_delta_e * m_elevator_deflection);
 	float fy = ;
 	float fz = ;
 	float Mx = ;
@@ -139,8 +152,7 @@ void MAVDynamicsModel::euler_step(float dt, float fx, float fy, float fz,
   m_r += dt * r_dot;
 }
 
-std::tuple<float, float>
-MAVDynamicsModel::get_thrust_and_torque(float throttle, float airspeed) {
+std::tuple<float, float> MAVDynamicsModel::get_thrust_and_torque(float throttle, float airspeed) {
   float volts_in = m_max_volts_motor * throttle;
   float propeller_speed = get_propeller_speed(volts_in, airspeed);
   float thrust = get_thrust(propeller_speed, airspeed);
@@ -172,6 +184,18 @@ float MAVDynamicsModel::get_torque(float propeller_speed, float airspeed){
 	return ((m_air_density * std::pow(m_propeller_diameter, 5) * m_C_Q0) / (4 * std::pow(M_PI, 2))) * std::pow(propeller_speed, 2) + 
 		((m_air_density * std::pow(m_propeller_diameter, 4) * m_C_Q1 * airspeed) / (2 * M_PI)) * propeller_speed + 
 		(m_air_density * std::pow(m_propeller_diameter, 3) * m_C_Q2 * std::pow(airspeed, 2));
+}
+
+float MAVDynamicsModel::get_drag_coefficent(float angle_of_attack){
+  return (m_C_Dp + (std::pow(m_C_L0, 2) / (M_PI * m_oswald_efficency * m_wing_aspect_ratio))) +
+        ((2 * m_C_L0 * m_C_La) / (M_PI * m_oswald_efficency * m_wing_aspect_ratio)) * angle_of_attack +
+        (std::pow(m_C_La, 2) / (M_PI * m_oswald_efficency * m_wing_aspect_ratio)) * std::pow(angle_of_attack, 2);
+}
+
+float MAVDynamicsModel::get_lift_coefficent(float angle_of_attack){
+  float sigmoid = (1 + std::pow(M_Ef, -m_M * (angle_of_attack - m_alpha0)) + std::pow(M_Ef, m_M * (angle_of_attack + m_alpha0))) / 
+                  ((1 + std::pow(M_Ef, -m_M * (angle_of_attack - m_alpha0))) * (1 + std::pow(M_Ef, m_M * (angle_of_attack + m_alpha0))));
+  return (1 - sigmoid) * (m_C_L0 + m_C_La * angle_of_attack) + sigmoid * (2 * (1 ? std::signbit(angle_of_attack) : 0) * std::pow(sinf(angle_of_attack), 2) * cosf(angle_of_attack));
 }
 
 float MAVDynamicsModel::get_airspeed(float u_r, float v_r, float w_r) {
