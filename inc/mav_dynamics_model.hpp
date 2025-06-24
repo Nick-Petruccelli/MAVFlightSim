@@ -5,11 +5,21 @@
 class MAVDynamicsModel {
 public:
 	MAVDynamicsModel(float mass, float Jx, float Jy, float Jz, float Jxz, Vector3 init_pos, Vector3 init_rot, Vector3 init_vel, Vector3 init_ang_vel);
-	void apply_force(float dt, Vector3 translational, Vector3 rotational);
+	void apply_force(float dt);
 	Vector3 get_pos();
 	Vector3 get_rot();
 private:
+	std::tuple<float, float> get_thrust_and_torque(float airspeed, float throttle);
+	float get_propeller_speed(float volts_in, float airspeed);
+	float get_thrust(float propeller_speed, float airspeed);
+	float get_torque(float propeller_speed, float airspeed);
+	float get_airspeed(float u_r, float v_r, float w_r);
+	float get_angle_of_attack(float u_r, float w_r);
+	float get_sideslip(float u_r, float v_r, float w_r);
 	void euler_step(float dt, float fx, float fy, float fz, float Mx, float My, float Mz);
+
+	float m_gravity = 9.8;
+	float m_air_density;
 
 	float m_mass;
 	float m_Jx;
@@ -25,6 +35,20 @@ private:
 	float m_gamma6;
 	float m_gamma7;
 	float m_gamma8;
+
+	float m_throttle = 0;
+	float m_max_volts_motor;
+	float m_C_Q0;
+	float m_C_Q1;
+	float m_C_Q2;
+	float m_C_T0;
+	float m_C_T1;
+	float m_C_T2;
+	float m_KQ;
+	float m_KV;
+	float m_motor_winding_resistance;
+	float m_no_load_current;
+	float m_propeller_diameter;
 
 	float m_pn;
 	float m_pe;
