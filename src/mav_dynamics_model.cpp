@@ -89,13 +89,17 @@ void MAVDynamicsModel::apply_force(float dt) {
   float C_Z = -drag_coef * sinf(angle_of_attack) - lift_coef * cosf(angle_of_attack);
   float C_Zq = -m_C_Dq * sinf(angle_of_attack) - m_C_Lq * cosf(angle_of_attack);
   float C_Z_delta_e = -m_C_D_delta_e * sinf(angle_of_attack) - m_C_L_delta_e* cosf(angle_of_attack);
-  
-	float fx = (-m_mass * m_gravity * 2 * (m_ex * m_ez - m_ey * m_e0)) +
+
+	float fx = (m_mass * m_gravity * 2 * (m_ex * m_ez - m_ey * m_e0)) +
 		thrust +
 		aero_coef * (C_X + C_Xq * (m_mean_chord / (2 * airspeed)) * m_q) +
                 aero_coef * (C_Z_delta_e * m_elevator_deflection);
-	float fy = ;
-	float fz = ;
+	float fy = (m_mass * m_gravity * 2 * (m_ey * m_ez + m_ex * m_e0)) + 
+                   aero_coef * (m_C_Y0 + m_C_Y_beta * side_slip + m_C_Yp * (m_wingspan / (2 * airspeed)) * m_p + m_C_Yr * (m_wingspan / (2 * airspeed)) * m_r) +
+                   aero_coef * (m_C_Y_delta_a * get_aileron_deflection() + m_C_Y_delta_r * m_rudder_deflection);
+	float fz = (m_mass * m_gravity * (m_e0 * m_e0 + m_ez * m_ez - m_ex * m_ex - m_ey * m_ey)) + 
+                   aero_coef * (C_Z * C_Zq * (m_mean_chord / (2 * airspeed)) * m_q) +
+                   aero_coef * (C_Z_delta_e * m_elevator_deflection);
 	float Mx = ;
 	float My = ;
 	float Mz = ;

@@ -15,6 +15,7 @@ private:
 	float get_torque(float propeller_speed, float airspeed);
 	float get_drag_coefficent(float angle_of_attack);
 	float get_lift_coefficent(float angle_of_attack);
+	float get_aileron_deflection();
 	float get_airspeed(float u_r, float v_r, float w_r);
 	float get_angle_of_attack(float u_r, float w_r);
 	float get_sideslip(float u_r, float v_r, float w_r);
@@ -31,6 +32,7 @@ private:
 	float m_oswald_efficency;
 	float m_mean_chord;
 	float m_planform_area;
+	float m_wingspan;
 	float m_gamma;
 	float m_gamma1;
 	float m_gamma2;
@@ -54,6 +56,12 @@ private:
 	float m_C_Dp;
 	float m_C_Dq;
 	float m_C_D_delta_e;
+	float m_C_Y0;
+	float m_C_Yr;
+	float m_C_Yp;
+	float m_C_Y_beta;
+	float m_C_Y_delta_r;
+	float m_C_Y_delta_a;
 	float m_alpha0;
 	float m_M;
 
