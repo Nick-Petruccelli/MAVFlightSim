@@ -21,18 +21,21 @@ private:
 	float get_sideslip(float u_r, float v_r, float w_r);
 	void euler_step(float dt, float fx, float fy, float fz, float Mx, float My, float Mz);
 
+	//Environ params
 	float m_gravity = 9.8;
 	float m_air_density;
 
+	//Airframe Params
 	float m_mass;
 	float m_Jx;
 	float m_Jy;
 	float m_Jz;
 	float m_Jxz;
 	float m_oswald_efficency;
+	float m_wingspan;
 	float m_mean_chord;
 	float m_planform_area;
-	float m_wingspan;
+	float m_wing_aspect_ratio;
 	float m_gamma;
 	float m_gamma1;
 	float m_gamma2;
@@ -43,13 +46,9 @@ private:
 	float m_gamma7;
 	float m_gamma8;
 
-	float m_elevator_deflection;
-	float m_r_aileron_deflection;
-	float m_l_aileron_deflection;
-	float m_rudder_deflection;
-
-	float m_wing_aspect_ratio;
+	//Aerodynamic coefficents
 	float m_C_L0;
+	float m_C_D0;
 	float m_C_La;
 	float m_C_Lq;
 	float m_C_L_delta_e;
@@ -64,7 +63,25 @@ private:
 	float m_C_Y_delta_a;
 	float m_alpha0;
 	float m_M;
+	float m_C_M_x0;
+	float m_C_M_xr;
+	float m_C_M_xp;
+	float m_C_M_x_beta;
+	float m_C_M_x_delta_r;
+	float m_C_M_x_delta_a;
+	float m_C_M_y0;
+	float m_C_M_yq;
+	float m_C_M_y_alpha;
+	float m_C_M_y_delta_e;
+	float m_C_M_z0;
+	float m_C_M_zp;
+	float m_C_M_zr;
+	float m_C_M_z_beta;
+	float m_C_M_z_delta_a;
+	float m_C_M_z_delta_r;
 
+
+	//Motor and propeller params
 	float m_throttle = 0;
 	float m_max_volts_motor;
 	float m_C_Q0;
@@ -79,6 +96,13 @@ private:
 	float m_no_load_current;
 	float m_propeller_diameter;
 
+	//Control surface state vars
+	float m_elevator_deflection;
+	float m_r_aileron_deflection;
+	float m_l_aileron_deflection;
+	float m_rudder_deflection;
+
+	//State vars
 	float m_pn;
 	float m_pe;
 	float m_pd;
