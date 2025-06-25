@@ -1,11 +1,13 @@
 #include "../inc/mav_dynamics_model.hpp"
 #include <cmath>
 #include <tuple>
+#include <rapidjson/document.h>
 
-MAVDynamicsModel::MAVDynamicsModel(float mass, float Jx, float Jy, float Jz,
-                                   float Jxz, Vector3 init_pos,
-                                   Vector3 init_rot, Vector3 init_vel,
-                                   Vector3 init_ang_vel) {
+MAVDynamicsModel::MAVDynamicsModel(std::string config_path) {
+  rapidjson::Document doc;
+  doc.Parse(config_path.c_str());
+
+
   m_mass = mass;
 
   m_Jx = Jx;
@@ -100,12 +102,12 @@ void MAVDynamicsModel::apply_force(float dt) {
 	float fz = (m_mass * m_gravity * (m_e0 * m_e0 + m_ez * m_ez - m_ex * m_ex - m_ey * m_ey)) + 
                    aero_coef * (C_Z * C_Zq * (m_mean_chord / (2 * airspeed)) * m_q) +
                    aero_coef * (C_Z_delta_e * m_elevator_deflection);
-	float Mx = aero_coef * (m_wingspan * (m_C_M_x0 + m_C_M_x_beta * side_slip + m_C_M_xp * (m_wingspan / (2 * airspeed)) * m_p + m_C_M_xr * (m_wingspan / (2 * airspeed)) * m_r)) +
-                   aero_coef * (m_wingspan * (m_C_M_x_delta_a * get_aileron_deflection() + m_C_M_x_delta_r * m_rudder_deflection)) - torque;
-	float My = aero_coef * (m_mean_chord * (m_C_M_y0 + m_C_M_y_alpha * angle_of_attack + m_C_M_yq * (m_mean_chord / (2 * airspeed)) * m_q)) +
-                   aero_coef * (m_mean_chord * m_C_M_y_delta_e * m_elevator_deflection);
-	float Mz = aero_coef * (m_wingspan * (m_C_M_z0 + m_C_M_z_beta * side_slip + m_C_M_zp * (m_wingspan / (2 * airspeed)) * m_p + m_C_M_zr * (m_wingspan / (2 * airspeed)) * m_r)) +
-                   aero_coef * (m_wingspan * (m_C_M_z_delta_a * get_aileron_deflection() + m_C_M_z_delta_r * m_rudder_deflection));
+	float Mx = aero_coef * (m_wingspan * (m_C_Mx_0 + m_C_Mx_beta * side_slip + m_C_Mx_p * (m_wingspan / (2 * airspeed)) * m_p + m_C_Mx_r * (m_wingspan / (2 * airspeed)) * m_r)) +
+                   aero_coef * (m_wingspan * (m_C_Mx_delta_a * get_aileron_deflection() + m_C_Mx_delta_r * m_rudder_deflection)) - torque;
+	float My = aero_coef * (m_mean_chord * (m_C_My_0 + m_C_My_alpha * angle_of_attack + m_C_My_q * (m_mean_chord / (2 * airspeed)) * m_q)) +
+                   aero_coef * (m_mean_chord * m_C_My_delta_e * m_elevator_deflection);
+	float Mz = aero_coef * (m_wingspan * (m_C_Mz_0 + m_C_Mz_beta * side_slip + m_C_Mz_p * (m_wingspan / (2 * airspeed)) * m_p + m_C_Mz_r * (m_wingspan / (2 * airspeed)) * m_r)) +
+                   aero_coef * (m_wingspan * (m_C_Mz_delta_a * get_aileron_deflection() + m_C_Mz_delta_r * m_rudder_deflection));
 
 	euler_step(dt, fx, fy, fz, Mx, My, Mz);
 }
@@ -157,6 +159,72 @@ void MAVDynamicsModel::euler_step(float dt, float fx, float fy, float fz,
   m_p += dt * p_dot;
   m_q += dt * q_dot;
   m_r += dt * r_dot;
+}
+
+void MAVDynamicsModel::validate_config_file(rapidjson::Document config_doc) {
+  assert(doc.HasMember("environment") && doc["environment"].IsObject());
+  assert(doc.HasMember("physical_params") && doc["environment"].IsObject());
+  assert(doc.HasMember("motor_params") && doc["environment"].IsObject());
+  assert(doc.HasMember("aerodynamic_coefficents") && doc["environment"].IsObject());
+
+  assert(doc["environment"].HasMember("gravity") && doc["environment"]["gravity"].IsFloat());
+  assert(doc["environment"].HasMember("air_density") && doc["environment"]["air_density"].IsFloat());
+
+  assert(doc["physical_params"].HasMember("mass") && doc["physical_params"]["mass"].IsFloat());
+  assert(doc["physical_params"].HasMember("Jx") && doc["physical_params"]["Jx"].IsFloat());
+  assert(doc["physical_params"].HasMember("Jy") && doc["physical_params"]["Jy"].IsFloat());
+  assert(doc["physical_params"].HasMember("Jz") && doc["physical_params"]["Jz"].IsFloat());
+  assert(doc["physical_params"].HasMember("Jy") && doc["physical_params"]["Jxz"].IsFloat());
+  assert(doc["physical_params"].HasMember("S") && doc["physical_params"]["S"].IsFloat());
+  assert(doc["physical_params"].HasMember("wingspan") && doc["physical_params"]["wingspan"].IsFloat());
+  assert(doc["physical_params"].HasMember("mean_chord") && doc["physical_params"]["mean_chord"].IsFloat());
+
+  assert(doc["motor_params"].HasMember("volts_max") && doc["motor_params"]["volts_max"].IsFloat());
+  assert(doc["motor_params"].HasMember("prop_diameter") && doc["motor_params"]["prop_diameter"].IsFloat());
+  assert(doc["motor_params"].HasMember("Kv") && doc["motor_params"]["Kv"].IsFloat());
+  assert(doc["motor_params"].HasMember("KQ") && doc["motor_params"]["KQ"].IsFloat());
+  assert(doc["motor_params"].HasMember("motor_winding_resistance") && doc["motor_params"]["motor_winding_resistance"].IsFloat());
+  assert(doc["motor_params"].HasMember("i0") && doc["motor_params"]["i0"].IsFloat());
+  assert(doc["motor_params"].HasMember("C_Q2") && doc["motor_params"]["C_Q2"].IsFloat());
+  assert(doc["motor_params"].HasMember("C_Q1") && doc["motor_params"]["C_Q1"].IsFloat());
+  assert(doc["motor_params"].HasMember("C_Q0") && doc["motor_params"]["C_Q0"].IsFloat());
+  assert(doc["motor_params"].HasMember("C_T2") && doc["motor_params"]["C_T2"].IsFloat());
+  assert(doc["motor_params"].HasMember("C_T1") && doc["motor_params"]["C_T1"].IsFloat());
+  assert(doc["motor_params"].HasMember("C_T0") && doc["motor_params"]["C_T0"].IsFloat());
+
+  assert(doc["aerodynamic_coefficents"].HasMember("C_L0") && doc["aerodynamic_coefficents"]["C_L0"].IsFloat());
+  assert(doc["aerodynamic_coefficents"].HasMember("C_D0") && doc["aerodynamic_coefficents"]["C_D0"].IsFloat());
+  assert(doc["aerodynamic_coefficents"].HasMember("C_My_0") && doc["aerodynamic_coefficents"]["C_My_0"].IsFloat());
+  assert(doc["aerodynamic_coefficents"].HasMember("C_L_alpha") && doc["aerodynamic_coefficents"]["C_L_alpha"].IsFloat());
+  assert(doc["aerodynamic_coefficents"].HasMember("C_D_alpha") && doc["aerodynamic_coefficents"]["C_D_alpha"].IsFloat());
+  assert(doc["aerodynamic_coefficents"].HasMember("C_My_alpha") && doc["aerodynamic_coefficents"]["C_My_alpha"].IsFloat());
+  assert(doc["aerodynamic_coefficents"].HasMember("C_Lq") && doc["aerodynamic_coefficents"]["C_Lq"].IsFloat());
+  assert(doc["aerodynamic_coefficents"].HasMember("C_Dq") && doc["aerodynamic_coefficents"]["C_Dq"].IsFloat());
+  assert(doc["aerodynamic_coefficents"].HasMember("C_My_q") && doc["aerodynamic_coefficents"]["C_My_q"].IsFloat());
+  assert(doc["aerodynamic_coefficents"].HasMember("C_L_delta_e") && doc["aerodynamic_coefficents"]["C_L_delta_e"].IsFloat());
+  assert(doc["aerodynamic_coefficents"].HasMember("C_D_delta_e") && doc["aerodynamic_coefficents"]["C_D_delta_e"].IsFloat());
+  assert(doc["aerodynamic_coefficents"].HasMember("C_My_delta_e") && doc["aerodynamic_coefficents"]["C_My_delta_e"].IsFloat());
+  assert(doc["aerodynamic_coefficents"].HasMember("M") && doc["aerodynamic_coefficents"]["M"].IsFloat());
+  assert(doc["aerodynamic_coefficents"].HasMember("alpha0") && doc["aerodynamic_coefficents"]["alpha0"].IsFloat());
+  assert(doc["aerodynamic_coefficents"].HasMember("C_Dp") && doc["aerodynamic_coefficents"]["C_Dp"].IsFloat());
+  assert(doc["aerodynamic_coefficents"].HasMember("C_Y0") && doc["aerodynamic_coefficents"]["C_Y0"].IsFloat());
+  assert(doc["aerodynamic_coefficents"].HasMember("C_Mx_0") && doc["aerodynamic_coefficents"]["C_Mx_0"].IsFloat());
+  assert(doc["aerodynamic_coefficents"].HasMember("C_Mx_0") && doc["aerodynamic_coefficents"]["C_Mx_0"].IsFloat());
+  assert(doc["aerodynamic_coefficents"].HasMember("C_Y_beta") && doc["aerodynamic_coefficents"]["C_Y_beta"].IsFloat());
+  assert(doc["aerodynamic_coefficents"].HasMember("C_Mx_beta") && doc["aerodynamic_coefficents"]["C_Mx_beta"].IsFloat());
+  assert(doc["aerodynamic_coefficents"].HasMember("C_Mz_beta") && doc["aerodynamic_coefficents"]["C_Mz_beta"].IsFloat());
+  assert(doc["aerodynamic_coefficents"].HasMember("C_Yp") && doc["aerodynamic_coefficents"]["C_Yp"].IsFloat());
+  assert(doc["aerodynamic_coefficents"].HasMember("C_Mx_beta") && doc["aerodynamic_coefficents"]["C_Mx_beta"].IsFloat());
+  assert(doc["aerodynamic_coefficents"].HasMember("C_Mz_beta") && doc["aerodynamic_coefficents"]["C_Mz_beta"].IsFloat());
+  assert(doc["aerodynamic_coefficents"].HasMember("C_Yr") && doc["aerodynamic_coefficents"]["C_Yr"].IsFloat());
+  assert(doc["aerodynamic_coefficents"].HasMember("C_Mx_r") && doc["aerodynamic_coefficents"]["C_Mx_r"].IsFloat());
+  assert(doc["aerodynamic_coefficents"].HasMember("C_Mz_r") && doc["aerodynamic_coefficents"]["C_Mz_r"].IsFloat());
+  assert(doc["aerodynamic_coefficents"].HasMember("C_Y_delta_a") && doc["aerodynamic_coefficents"]["C_Y_delta_a"].IsFloat());
+  assert(doc["aerodynamic_coefficents"].HasMember("C_Mx_delta_a") && doc["aerodynamic_coefficents"]["C_Mx_delta_a"].IsFloat());
+  assert(doc["aerodynamic_coefficents"].HasMember("C_Mz_delta_a") && doc["aerodynamic_coefficents"]["C_Mz_delta_a"].IsFloat());
+  assert(doc["aerodynamic_coefficents"].HasMember("C_Y_delta_r") && doc["aerodynamic_coefficents"]["C_Y_delta_r"].IsFloat());
+  assert(doc["aerodynamic_coefficents"].HasMember("C_Mx_delta_r") && doc["aerodynamic_coefficents"]["C_Mx_delta_r"].IsFloat());
+  assert(doc["aerodynamic_coefficents"].HasMember("C_Mz_delta_r") && doc["aerodynamic_coefficents"]["C_Mz_delta_r"].IsFloat());
 }
 
 std::tuple<float, float> MAVDynamicsModel::get_thrust_and_torque(float throttle, float airspeed) {

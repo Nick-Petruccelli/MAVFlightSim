@@ -1,14 +1,19 @@
 #pragma once
 #include <raylib.h>
 #include <raymath.h>
+#include <string>
+#include <rapidjson/document.h>
 
 class MAVDynamicsModel {
 public:
-	MAVDynamicsModel(float mass, float Jx, float Jy, float Jz, float Jxz, Vector3 init_pos, Vector3 init_rot, Vector3 init_vel, Vector3 init_ang_vel);
+	MAVDynamicsModel(std::string config_path = std::string("../resources/config.json"));
 	void apply_force(float dt);
 	Vector3 get_pos();
 	Vector3 get_rot();
 private:
+	void validate_config_file(rapidjson::Document config_doc);
+	void set_sim_params(rapidjson::Document config_doc);
+
 	std::tuple<float, float> get_thrust_and_torque(float airspeed, float throttle);
 	float get_propeller_speed(float volts_in, float airspeed);
 	float get_thrust(float propeller_speed, float airspeed);
@@ -63,22 +68,22 @@ private:
 	float m_C_Y_delta_a;
 	float m_alpha0;
 	float m_M;
-	float m_C_M_x0;
-	float m_C_M_xr;
-	float m_C_M_xp;
-	float m_C_M_x_beta;
-	float m_C_M_x_delta_r;
-	float m_C_M_x_delta_a;
-	float m_C_M_y0;
-	float m_C_M_yq;
-	float m_C_M_y_alpha;
-	float m_C_M_y_delta_e;
-	float m_C_M_z0;
-	float m_C_M_zp;
-	float m_C_M_zr;
-	float m_C_M_z_beta;
-	float m_C_M_z_delta_a;
-	float m_C_M_z_delta_r;
+	float m_C_Mx_0;
+	float m_C_Mx_r;
+	float m_C_Mx_p;
+	float m_C_Mx_beta;
+	float m_C_Mx_delta_r;
+	float m_C_Mx_delta_a;
+	float m_C_My_0;
+	float m_C_My_q;
+	float m_C_My_alpha;
+	float m_C_My_delta_e;
+	float m_C_Mz_0;
+	float m_C_Mz_p;
+	float m_C_Mz_r;
+	float m_C_Mz_beta;
+	float m_C_Mz_delta_a;
+	float m_C_Mz_delta_r;
 
 
 	//Motor and propeller params
