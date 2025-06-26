@@ -6,13 +6,13 @@
 
 class MAVDynamicsModel {
 public:
-	MAVDynamicsModel(std::string config_path = std::string("../resources/config.json"));
+	MAVDynamicsModel(std::string config_path = std::string("resources/config.json"));
 	void apply_force(float dt);
 	Vector3 get_pos();
 	Vector3 get_rot();
 private:
-	void validate_config_file(rapidjson::Document config_doc);
-	void set_sim_params(rapidjson::Document config_doc);
+	void validate_config_file(rapidjson::Document& config_doc);
+	void set_sim_params(rapidjson::Document& config_doc);
 
 	std::tuple<float, float> get_thrust_and_torque(float airspeed, float throttle);
 	float get_propeller_speed(float volts_in, float airspeed);
@@ -54,7 +54,10 @@ private:
 	//Aerodynamic coefficents
 	float m_C_L0;
 	float m_C_D0;
-	float m_C_La;
+	float m_C_My_0;
+	float m_C_L_alpha;
+	float m_C_D_alpha;
+	float m_C_My_alpha;
 	float m_C_Lq;
 	float m_C_L_delta_e;
 	float m_C_Dp;
@@ -74,9 +77,7 @@ private:
 	float m_C_Mx_beta;
 	float m_C_Mx_delta_r;
 	float m_C_Mx_delta_a;
-	float m_C_My_0;
 	float m_C_My_q;
-	float m_C_My_alpha;
 	float m_C_My_delta_e;
 	float m_C_Mz_0;
 	float m_C_Mz_p;
