@@ -6,6 +6,8 @@
 #include <iostream>
 #include <vector>
 
+const float SOFTENING_FACTOR = 0.00000000000001;
+
 MAVDynamicsModel::MAVDynamicsModel(std::string config_path) {
   std::cout << "Initializing Simulation" << std::endl;
 
@@ -51,12 +53,13 @@ void MAVDynamicsModel::apply_force(float dt) {
   float w_r = m_w - w_wind;
 
   float airspeed = get_airspeed(u_r, v_r, w_r);
-  auto [thrust, torque] = get_thrust_and_torque(airspeed, m_throttle);
+  auto [thrust, torque] = get_thrust_and_torque(m_throttle, airspeed);
   float angle_of_attack = get_angle_of_attack(u_r, w_r);
   float side_slip = get_sideslip(u_r, v_r, w_r);
   float aero_coef = 0.5 * m_air_density * std::pow(airspeed, 2) * m_planform_area;
   float drag_coef = get_drag_coefficent(angle_of_attack);
   float lift_coef = get_lift_coefficent(angle_of_attack);
+  float aileron_defection = get_aileron_deflection();
 
   float C_X = -drag_coef * cosf(angle_of_attack) + lift_coef * sinf(angle_of_attack);
   float C_Xq = -m_C_Dq * cosf(angle_of_attack) + m_C_Lq * sinf(angle_of_attack);
@@ -65,23 +68,45 @@ void MAVDynamicsModel::apply_force(float dt) {
   float C_Zq = -m_C_Dq * sinf(angle_of_attack) - m_C_Lq * cosf(angle_of_attack);
   float C_Z_delta_e = -m_C_D_delta_e * sinf(angle_of_attack) - m_C_L_delta_e* cosf(angle_of_attack);
 
+  std::cout << "airspeed: " << airspeed << std::endl;
+  std::cout << "thrust: " << thrust << std::endl;
+  std::cout << "torque: " << torque << std::endl;
+  std::cout << "angle_of_attack: " << angle_of_attack << std::endl;
+  std::cout << "side_slip: " << side_slip << std::endl;
+  std::cout << "aero_coef: " << aero_coef << std::endl;
+  std::cout << "drag_coef: " << drag_coef << std::endl;
+  std::cout << "lift_coef: " << lift_coef << std::endl;
+  std::cout << "aileron_deflection: " << aileron_defection << std::endl;
+
+  std::cout << "C_X: " << C_X << std::endl;
+  std::cout << "C_Xq: " << C_Xq << std::endl;
+  std::cout << "C_X_delta_e: " << C_X_delta_e << std::endl;
+  std::cout << "C_Z: " << C_Z << std::endl;
+  std::cout << "C_Zq: " << C_Zq << std::endl;
+  std::cout << "C_Z_delta_e: " << C_Z_delta_e << std::endl;
+  std::cout << "C_Y_delta_a: " << m_C_Y_delta_a << std::endl;
+  std::cout << "C_Mx_delta_a: " << m_C_Mx_delta_a << std::endl;
+  std::cout << "C_Mz_delta_a: " << m_C_Mz_delta_a << std::endl;
+
 	float fx = (m_mass * m_gravity * 2 * (m_ex * m_ez - m_ey * m_e0)) +
 		thrust +
 		aero_coef * (C_X + C_Xq * (m_mean_chord / (2 * airspeed)) * m_q) +
                 aero_coef * (C_Z_delta_e * m_elevator_deflection);
 	float fy = (m_mass * m_gravity * 2 * (m_ey * m_ez + m_ex * m_e0)) + 
                    aero_coef * (m_C_Y0 + m_C_Y_beta * side_slip + m_C_Yp * (m_wingspan / (2 * airspeed)) * m_p + m_C_Yr * (m_wingspan / (2 * airspeed)) * m_r) +
-                   aero_coef * (m_C_Y_delta_a * get_aileron_deflection() + m_C_Y_delta_r * m_rudder_deflection);
+                   aero_coef * (m_C_Y_delta_a * aileron_defection + m_C_Y_delta_r * m_rudder_deflection);
 	float fz = (m_mass * m_gravity * (m_e0 * m_e0 + m_ez * m_ez - m_ex * m_ex - m_ey * m_ey)) + 
                    aero_coef * (C_Z * C_Zq * (m_mean_chord / (2 * airspeed)) * m_q) +
                    aero_coef * (C_Z_delta_e * m_elevator_deflection);
 	float Mx = aero_coef * (m_wingspan * (m_C_Mx_0 + m_C_Mx_beta * side_slip + m_C_Mx_p * (m_wingspan / (2 * airspeed)) * m_p + m_C_Mx_r * (m_wingspan / (2 * airspeed)) * m_r)) +
-                   aero_coef * (m_wingspan * (m_C_Mx_delta_a * get_aileron_deflection() + m_C_Mx_delta_r * m_rudder_deflection)) - torque;
+                   aero_coef * (m_wingspan * (m_C_Mx_delta_a * aileron_defection + m_C_Mx_delta_r * m_rudder_deflection)) - torque;
 	float My = aero_coef * (m_mean_chord * (m_C_My_0 + m_C_My_alpha * angle_of_attack + m_C_My_q * (m_mean_chord / (2 * airspeed)) * m_q)) +
                    aero_coef * (m_mean_chord * m_C_My_delta_e * m_elevator_deflection);
 	float Mz = aero_coef * (m_wingspan * (m_C_Mz_0 + m_C_Mz_beta * side_slip + m_C_Mz_p * (m_wingspan / (2 * airspeed)) * m_p + m_C_Mz_r * (m_wingspan / (2 * airspeed)) * m_r)) +
-                   aero_coef * (m_wingspan * (m_C_Mz_delta_a * get_aileron_deflection() + m_C_Mz_delta_r * m_rudder_deflection));
+                   aero_coef * (m_wingspan * (m_C_Mz_delta_a * aileron_defection + m_C_Mz_delta_r * m_rudder_deflection));
 
+        std::cout << "force XYZ: " << fx << " " << fy << " " << fz << std::endl;
+        std::cout << "moments XYZ: " << Mx << " " << My << " " << Mz << std::endl;
 	euler_step(dt, fx, fy, fz, Mx, My, Mz);
         std::cout << "XYZ: " << m_pn << " " << m_pe << " " << -m_pd << std::endl;
 }
@@ -140,10 +165,21 @@ void MAVDynamicsModel::validate_config_file(rapidjson::Document& config_doc) {
 
   assert(config_doc.IsObject());
 
+  assert(config_doc.HasMember("init_conditions") && config_doc["init_conditions"].IsObject());
   assert(config_doc.HasMember("environment") && config_doc["environment"].IsObject());
   assert(config_doc.HasMember("physical_params") && config_doc["environment"].IsObject());
   assert(config_doc.HasMember("motor_params") && config_doc["environment"].IsObject());
   assert(config_doc.HasMember("aerodynamic_coefficents") && config_doc["environment"].IsObject());
+
+  assert(config_doc["init_conditions"].HasMember("position") && config_doc["init_conditions"]["position"].IsArray());
+  assert(config_doc["init_conditions"].HasMember("rotation") && config_doc["init_conditions"]["rotation"].IsArray());
+  assert(config_doc["init_conditions"].HasMember("velocity") && config_doc["init_conditions"]["velocity"].IsArray());
+  assert(config_doc["init_conditions"].HasMember("angular_velocity") && config_doc["init_conditions"]["angular_velocity"].IsArray());
+  assert(config_doc["init_conditions"].HasMember("aileron_r_deflection") && config_doc["init_conditions"]["aileron_r_deflection"].IsFloat());
+  assert(config_doc["init_conditions"].HasMember("aileron_l_deflection") && config_doc["init_conditions"]["aileron_l_deflection"].IsFloat());
+  assert(config_doc["init_conditions"].HasMember("rudder_deflection") && config_doc["init_conditions"]["rudder_deflection"].IsFloat());
+  assert(config_doc["init_conditions"].HasMember("elevator_deflection") && config_doc["init_conditions"]["elevator_deflection"].IsFloat());
+  assert(config_doc["init_conditions"].HasMember("throttle") && config_doc["init_conditions"]["throttle"].IsFloat());
 
   assert(config_doc["environment"].HasMember("gravity") && config_doc["environment"]["gravity"].IsFloat());
   assert(config_doc["environment"].HasMember("air_density") && config_doc["environment"]["air_density"].IsFloat());
@@ -156,6 +192,7 @@ void MAVDynamicsModel::validate_config_file(rapidjson::Document& config_doc) {
   assert(config_doc["physical_params"].HasMember("S") && config_doc["physical_params"]["S"].IsFloat());
   assert(config_doc["physical_params"].HasMember("wingspan") && config_doc["physical_params"]["wingspan"].IsFloat());
   assert(config_doc["physical_params"].HasMember("mean_chord") && config_doc["physical_params"]["mean_chord"].IsFloat());
+  assert(config_doc["physical_params"].HasMember("oswald_efficency") && config_doc["physical_params"]["oswald_efficency"].IsFloat());
 
   assert(config_doc["motor_params"].HasMember("volts_max") && config_doc["motor_params"]["volts_max"].IsFloat());
   assert(config_doc["motor_params"].HasMember("prop_diameter") && config_doc["motor_params"]["prop_diameter"].IsFloat());
@@ -219,6 +256,8 @@ void MAVDynamicsModel::set_sim_params(rapidjson::Document& config_doc) {
   m_planform_area = config_doc["physical_params"]["S"].GetFloat();
   m_wingspan = config_doc["physical_params"]["wingspan"].GetFloat();
   m_mean_chord = config_doc["physical_params"]["mean_chord"].GetFloat();
+  m_wing_aspect_ratio = std::pow(m_wingspan, 2) / m_planform_area;
+  m_oswald_efficency = config_doc["physical_params"]["oswald_efficency"].GetFloat();
 
   m_max_volts_motor = config_doc["motor_params"]["volts_max"].GetFloat();
   m_propeller_diameter = config_doc["motor_params"]["prop_diameter"].GetFloat();
@@ -307,36 +346,38 @@ void MAVDynamicsModel::set_sim_params(rapidjson::Document& config_doc) {
          sin(psi / 2.0) * cos(theta / 2.0) * sin(phi / 2.0);
   m_ez = sin(psi / 2.0) * cos(theta / 2.0) * cos(phi / 2.0) -
          cos(psi / 2.0) * sin(theta / 2.0) * sin(phi / 2.0);
-  /*
-  */
+
+  m_r_aileron_deflection = config_doc["init_conditions"]["aileron_r_deflection"].GetFloat();
+  m_l_aileron_deflection = config_doc["init_conditions"]["aileron_l_deflection"].GetFloat();
+  m_rudder_deflection = config_doc["init_conditions"]["rudder_deflection"].GetFloat();
+  m_elevator_deflection = config_doc["init_conditions"]["elevator_deflection"].GetFloat();
+  m_throttle = config_doc["init_conditions"]["throttle"].GetFloat();
 }
 
 std::tuple<float, float> MAVDynamicsModel::get_thrust_and_torque(float throttle, float airspeed) {
   float volts_in = m_max_volts_motor * throttle;
   float propeller_speed = get_propeller_speed(volts_in, airspeed);
+  std::cout << "volts_max: " << m_max_volts_motor << std::endl;
+  std::cout << "throttle: " << throttle << std::endl;
+  std::cout << "volts_in: " << volts_in << std::endl;
+  std::cout << "propeller_speed: " << propeller_speed << std::endl;
   float thrust = get_thrust(propeller_speed, airspeed);
   float torque = get_torque(propeller_speed, airspeed);
   return {thrust, torque};
 }
 
 float MAVDynamicsModel::get_propeller_speed(float volts_in, float airspeed) {
-  float a = ((m_air_density * std::pow(m_propeller_diameter, 5)) /
-             std::pow(2 * M_PI, 2)) *
-            m_C_Q0;
-  float b = ((m_air_density * std::pow(m_propeller_diameter, 4)) / (2 * M_PI)) *
-                m_C_Q1 * airspeed +
-            ((m_KQ * m_KV) / m_motor_winding_resistance);
-  float c = m_air_density * std::pow(m_propeller_diameter, 3) * m_C_Q2 *
-                std::pow(airspeed, 2) -
-            (m_KQ / m_motor_winding_resistance) * volts_in +
-            m_KQ * m_no_load_current;
+  float a = ((m_air_density * std::pow(m_propeller_diameter, 5)) / std::pow(2 * M_PI, 2)) * m_C_Q0;
+  float b = ((m_air_density * std::pow(m_propeller_diameter, 4)) / (2 * M_PI)) * m_C_Q1 * airspeed + ((m_KQ * m_KV) / m_motor_winding_resistance);
+  float c = m_air_density * std::pow(m_propeller_diameter, 3) * m_C_Q2 * std::pow(airspeed, 2) - (m_KQ / m_motor_winding_resistance) * volts_in + m_KQ * m_no_load_current;
   return (-b + sqrtf(b * b - 4 * a * c)) / (2 * a);
 }
 
 float MAVDynamicsModel::get_thrust(float propeller_speed, float airspeed){
-	return ((m_air_density * std::pow(m_propeller_diameter, 4) * m_C_T0) / (4 * std::pow(M_PI, 2))) * std::pow(propeller_speed, 2) + 
+	float thrust = ((m_air_density * std::pow(m_propeller_diameter, 4) * m_C_T0) / (4 * std::pow(M_PI, 2))) * std::pow(propeller_speed, 2) + 
 		((m_air_density * std::pow(m_propeller_diameter, 3) * m_C_T1 * airspeed) / (2 * M_PI)) * propeller_speed + 
 		(m_air_density * std::pow(m_propeller_diameter, 2) * m_C_T2 * std::pow(airspeed, 2));
+        return thrust;
 }
 
 float MAVDynamicsModel::get_torque(float propeller_speed, float airspeed){
@@ -346,6 +387,9 @@ float MAVDynamicsModel::get_torque(float propeller_speed, float airspeed){
 }
 
 float MAVDynamicsModel::get_drag_coefficent(float angle_of_attack){
+  assert(m_oswald_efficency != 0);
+  assert(m_wing_aspect_ratio != 0);
+  assert(M_PI * m_oswald_efficency * m_wing_aspect_ratio != 0);
   return (m_C_Dp + (std::pow(m_C_L0, 2) / (M_PI * m_oswald_efficency * m_wing_aspect_ratio))) +
         ((2 * m_C_L0 * m_C_L_alpha) / (M_PI * m_oswald_efficency * m_wing_aspect_ratio)) * angle_of_attack +
         (std::pow(m_C_L_alpha, 2) / (M_PI * m_oswald_efficency * m_wing_aspect_ratio)) * std::pow(angle_of_attack, 2);

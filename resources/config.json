@@ -2,8 +2,13 @@
 	"init_conditions": {
 		"position": [0.0, 0.0, 0.0],
 		"rotation": [0.0, 0.0, 0.0],
-		"velocity": [0.0, 0.0, 0.0],
-		"angular_velocity": [0.0, 0.0, 0.0]
+		"velocity": [9.0, 0.0, 0.0],
+		"angular_velocity": [0.0, 0.0, 0.0],
+		"aileron_r_deflection": 0.0,
+		"aileron_l_deflection": 0.0,
+		"rudder_deflection": 0.0,
+		"elevator_deflection": 0.0,
+		"throttle": 0.5
 	},
 	"environment": {
 		"gravity": 9.8,
@@ -17,7 +22,8 @@
 		"Jxz": 0.120,
 		"S": 0.55,
 		"wingspan": 2.9,
-		"mean_chord": 0.19
+		"mean_chord": 0.19,
+		"oswald_efficency": 0.9
 	},
 	"motor_params": {
 		"volts_max": 44.4,

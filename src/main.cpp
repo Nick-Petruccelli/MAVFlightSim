@@ -20,6 +20,8 @@ int main(){
 	while(!WindowShouldClose()){
 		float dt = GetFrameTime();
 		model.apply_force(dt);
+		if(frame == 100)
+			return 1;
 
 		Vector3 mav_pos = model.get_pos();
 		Vector3 mav_rot = model.get_rot();
