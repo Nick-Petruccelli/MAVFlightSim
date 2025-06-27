@@ -24,6 +24,11 @@ private:
 	float get_airspeed(float u_r, float v_r, float w_r);
 	float get_angle_of_attack(float u_r, float w_r);
 	float get_sideslip(float u_r, float v_r, float w_r);
+
+	float get_wind_u();
+	float get_wind_v();
+	float get_wind_w();
+
 	void euler_step(float dt, float fx, float fy, float fz, float Mx, float My, float Mz);
 
 	//Environ params

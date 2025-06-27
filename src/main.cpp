@@ -20,11 +20,11 @@ int main(){
 	while(!WindowShouldClose()){
 		float dt = GetFrameTime();
 		model.apply_force(dt);
-		if(frame == 100)
-			return 1;
 
 		Vector3 mav_pos = model.get_pos();
 		Vector3 mav_rot = model.get_rot();
+		std::cout << "mav_pos(XYZ): " << mav_pos.x << "," << mav_pos.y << "," << mav_pos.z << std::endl;
+		std::cout << "mav_rot(XYZ): " << mav_rot.x << "," << mav_rot.y << "," << mav_rot.z << std::endl;
 		renderer.render_step(mav_pos, mav_rot);
 		frame++;
 	}

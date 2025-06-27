@@ -44,13 +44,17 @@ Vector3 MAVDynamicsModel::get_rot() {
 }
 
 void MAVDynamicsModel::apply_force(float dt) {
-  float u_wind = 0;//get_u_wind();
-  float v_wind = 0;//get_v_wind();
-  float w_wind = 0;//get_w_wind();
+  float u_wind = get_wind_u();
+  float v_wind = get_wind_v();
+  float w_wind = get_wind_w();
 
   float u_r = m_u - u_wind;
   float v_r = m_v - v_wind;
   float w_r = m_w - w_wind;
+
+  std::cout << "u_r: " << u_r << std::endl;
+  std::cout << "v_r: " << v_r << std::endl;
+  std::cout << "w_r: " << w_r << std::endl;
 
   float airspeed = get_airspeed(u_r, v_r, w_r);
   auto [thrust, torque] = get_thrust_and_torque(m_throttle, airspeed);
@@ -76,7 +80,6 @@ void MAVDynamicsModel::apply_force(float dt) {
   std::cout << "aero_coef: " << aero_coef << std::endl;
   std::cout << "drag_coef: " << drag_coef << std::endl;
   std::cout << "lift_coef: " << lift_coef << std::endl;
-  std::cout << "aileron_deflection: " << aileron_defection << std::endl;
 
   std::cout << "C_X: " << C_X << std::endl;
   std::cout << "C_Xq: " << C_Xq << std::endl;
@@ -88,6 +91,9 @@ void MAVDynamicsModel::apply_force(float dt) {
   std::cout << "C_Mx_delta_a: " << m_C_Mx_delta_a << std::endl;
   std::cout << "C_Mz_delta_a: " << m_C_Mz_delta_a << std::endl;
 
+  std::cout << "aileron_deflection: " << aileron_defection << std::endl;
+  std::cout << "rudder_deflection: " << m_rudder_deflection << std::endl;
+  std::cout << "elevator_deflection: : " << m_elevator_deflection << std::endl;
 	float fx = (m_mass * m_gravity * 2 * (m_ex * m_ez - m_ey * m_e0)) +
 		thrust +
 		aero_coef * (C_X + C_Xq * (m_mean_chord / (2 * airspeed)) * m_q) +
@@ -130,10 +136,10 @@ void MAVDynamicsModel::euler_step(float dt, float fx, float fy, float fz,
   v_dot = (m_p * m_w - m_r * m_u) + (fy / m_mass);
   w_dot = (m_q * m_u - m_p * m_v) + (fz / m_mass);
 
-  e0_dot = (-m_p * m_ex + -m_q * m_ey + -m_r * m_ez) / 2.0f;
-  ex_dot = (m_p * m_e0 + m_r * m_ey + -m_q * m_ez) / 2.0f;
-  ey_dot = (m_q * m_e0 + -m_r * m_ex + m_p * m_ez) / 2.0f;
-  ez_dot = (m_r * m_e0 + m_q * m_ex + -m_p * m_ey) / 2.0f;
+  e0_dot = ((-m_p * m_ex) + (-m_q * m_ey) + (-m_r * m_ez)) / 2.0f;
+  ex_dot = (m_p * m_e0 + m_r * m_ey + (-m_q * m_ez)) / 2.0f;
+  ey_dot = (m_q * m_e0 + (-m_r * m_ex) + m_p * m_ez) / 2.0f;
+  ez_dot = (m_r * m_e0 + m_q * m_ex + (-m_p * m_ey)) / 2.0f;
 
   p_dot = (m_gamma1 * m_p * m_q - m_gamma2 * m_q * m_r) +
           (m_gamma3 * Mx + m_gamma4 * Mz);
@@ -154,6 +160,12 @@ void MAVDynamicsModel::euler_step(float dt, float fx, float fy, float fz,
   m_ex += dt * ex_dot;
   m_ey += dt * ey_dot;
   m_ez += dt * ez_dot;
+
+  float quaternion_magnatude = sqrtf(std::pow(m_e0,2) + std::pow(m_ex,2) +std::pow(m_ey,2) + std::pow(m_ez,2));
+  m_e0 /= quaternion_magnatude;
+  m_ex /= quaternion_magnatude;
+  m_ey /= quaternion_magnatude;
+  m_ez /= quaternion_magnatude;
 
   m_p += dt * p_dot;
   m_q += dt * q_dot;
@@ -402,7 +414,7 @@ float MAVDynamicsModel::get_lift_coefficent(float angle_of_attack){
 }
 
 float MAVDynamicsModel::get_aileron_deflection(){
-  return 0.0;
+  return 0.5 * (m_l_aileron_deflection - m_r_aileron_deflection);
 }
 
 float MAVDynamicsModel::get_airspeed(float u_r, float v_r, float w_r) {
@@ -414,5 +426,17 @@ float MAVDynamicsModel::get_angle_of_attack(float u_r, float w_r) {
 }
 
 float MAVDynamicsModel::get_sideslip(float u_r, float v_r, float w_r) {
-  return atanf(v_r / sqrtf(u_r * u_r + w_r * w_r));
+  return atanf(v_r / sqrtf(u_r * u_r + v_r * v_r + w_r * w_r));
+}
+
+float MAVDynamicsModel::get_wind_u() {
+  return 0.0;
+}
+
+float MAVDynamicsModel::get_wind_v() {
+  return 0.0;
+}
+
+float MAVDynamicsModel::get_wind_w() {
+  return 0.0;
 }
